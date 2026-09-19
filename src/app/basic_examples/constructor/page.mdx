@@ -105,6 +105,9 @@ Stylus constructors are deployed through the on-chain **StylusDeployer** contrac
 Behind the scenes, `cargo stylus deploy` uses a **CREATE2 factory** to upload your Wasm bytecode deterministically and the **StylusDeployer** to fund and call your constructor. On Arbitrum One, Arbitrum Nova, and the Nitro Dev Node these two contracts are already deployed at the same hardcoded addresses that Cargo Stylus expects. If you’re on a custom chain or local network without them, deploy them first:
 
 ```bash
+CREATE2_FACTORY=0x4e59b44847b379578588920ca78fbf26c0b4956c
+SALT=0x0000000000000000000000000000000000000000000000000000000000000000
+
 # 1. Deploy CREATE2 factory (for deterministic bytecode upload)
 echo "Deploying the CREATE2 factory"
 cast send --rpc-url $RPC --private-key $KEY_PATH --value "1 ether" \
@@ -119,7 +122,9 @@ if [ "$(cast code -r $RPC $CREATE2_FACTORY)" == "0x" ]; then
 fi
 
 # 2. Deploy StylusDeployer (handles constructor calls & funding)
-deployer_code=$(cat ./stylus-deployer-bytecode.txt)
+# Use the bytecode pinned by the official Nitro dev node.
+deployer_code=$(curl -fsSL \
+  https://raw.githubusercontent.com/OffchainLabs/nitro-devnode/ebb523d4ed9c04d4183743af844a038e9843f352/stylus-deployer-bytecode.txt)
 deployer_address=$(cast create2 --salt $SALT --init-code $deployer_code)
 cast send --private-key $KEY_PATH --rpc-url $RPC \
     $CREATE2_FACTORY "$SALT$deployer_code"
